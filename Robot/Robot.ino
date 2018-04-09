@@ -31,42 +31,43 @@ Servo Front_Pan;                               //Center 2nd servo pin Digital 21
 SoftwareSerial xbee(10, 11);
 
 /* State Machine Variables */
-int state = 5;
+int state = 11;
 boolean start = true;
 
 /* Sensors */
-SharpIR Front_Long(GP2YA41SK0F, A3);
+//SharpIR Front_Long(GP2YA41SK0F, A3);
 const int analogPin0 = 0;                   //Center sensor
 const int analogPin1 = 1;                   //Left sensor
-const int analogPin2 = 2;                   //Right sensor
+const int analogPin2 = 2;                   //Right sesnor
 const int analogPin7 = 7;                   //mag sensor
+int last_pos = 0;
 
-/* Variable Heap */
-boolean objects[6]; // 0, left wall, 1 right wall, 2 front wall, 3 left edge, 4 right edge, 5, front edge
+/* Array of Local Objects */
+/* Rebuild this array by calling sense_environment() */
+/*
+   False = No object
+   True = Object present
 
-//TESTING
+   [0] left wall
+   [1] right wall
+   [2] front wall
+   [3] left edge9
+   [4] right edge
+   [5] front edge
+*/
+boolean objects[6];
+
+/* Timing for Movement functions */
 int test1 = 50;
 int test2 = 100;
 int test3 = 50;
 int test4 = 150;
 
-//Random Variables
-char val;                                  // Data received from the serial port
-int radius = 16;
-float left_dist, right_dist, front_dist, left_dist_old, right_dist_old, front_dist_old;
-int angle = 45;
-int done, right_speed, left_speed = 0;
-boolean Direction = true;
-int count, inc, pause = 1;
-int global_count, flag, flag1 = 0;
-int index, lastIndex, wall, edge, obstacle, line = 0;
-float distance = 0;
-long duration;
-float cm, cm_right, cm_left;
-int stack_ptr = 0;
-float global_memory[15];
-float slope = 0;
-int steps = 0;
+/* State Variables for Action functions */
+float cm, cm_right, cm_left, left_dist, right_dist, front_dist, left_dist_old, right_dist_old, front_dist_old = 0;
+int wall, edge, obstacle, line, steps, right_speed, left_speed = 0;
+int count = 1;
+boolean toggle = true;
 
 void setup()
 {
@@ -104,67 +105,116 @@ void setup()
   //Settling Time
   delay(250);
 }
-// 0, left wall, 1 right wall, 2 front wall, 3 left edge, 4 right edge, 5, front edge
+
 void loop()
 {
   if (start)
   {
     switch (state)
     {
+      /* Base */
       case 0:
-        check_environment("all");
-        if (objects[2] == false && objects[0] == true && objects[1] == true)
-          state = 1;
-        if (objects[2] == false && objects[0] == false && objects[1] == false)
-          state = 3;
-        /*
-          if((objects[2] == true && objects[0] == false && objects[1] == false}
-          state    = 2;
-        */
+        check_environment("all", 50);
+        Speed(3);
+        if (objects[2] == false && objects[0] == true && objects[1] == true) state = 1;
+        if (objects[2] == false && objects[0] == false && objects[1] == false) state = 4;
         break;
-      case 1://Paddleboard state
-        Speed(4);
-        inBetweenObjects();
+      /* Paddleboard */
+      case 1:
+        scissor("lift", 350, false);
+        Speed(3);
+        state = 2;
         break;
-      case 2://Wall-lift state
-        Speed(4);
-        Front_Tilt.write(25);
-        acquire_line(); 
-        drive_forward(10);
-        tracks("lift");
-        check_environment("walls");
-        
-        while (objects[0] == false && objects[1] == false)
-        { 
-          forward(2, 1);
-          check_environment("walls");
-        }
-        
-        drive_forward(25);
-        tracks("stop");
-        state = 3;
+      case 2:
+        if (!in_between()) state = 3;
         break;
-      case 3://U-turn state
-        acquire_line();
+      case 3:
+        follow_line(0, 5);
+        drive_forward(6);
+        scissor("lower", 350, false);
         state = 4;
+        steps = 0;
         break;
-      case 4://Bars bb almost there
-        follow_line();
-        steps++;
-        if (steps > 225)
+      /* Wall Lift */
+      case 4:
+        //follow_line(0, 2);
+        //steps++;
+        follow_line(0, 2);
+        check_environment("walls", 350);
+        if (!isinf(front_dist) && front_dist < 25) state = 5;
+        break;
+      case 5:
+        Speed(3);
+        drive_forward(5);
+        check_environment("walls", 50);
+        if (front_dist < 7) state = 6;
+        break;
+      case 6:
+        tracks("lift", 1);
+        check_environment("walls", 50);
+        while (objects[0] == false || objects[1] == false)
         {
-          //sense_environment()
-          exit(0);
+          drive_forward(2);
+          check_environment("walls", 50);
+        }
+        drive_forward(30);
+        tracks("stop", 1);
+        state = 7;
+        break;
+      /* U-Turn */
+      case 7:
+        if (steps < 112)
+        {
+          follow_line(0, 1);
+          steps++;
+          if (steps == 40) scissor("lift", 1200, false);
+          //if (steps == 112) tracks("drive");
+        }
+        else
+        {
+          check_environment("floor", 2);
+          if (left_dist > 15 && right_dist > 15) state = 8;
+          else 
+          {
+            forward(2, 1);
+            tracks("pulse", 1);
+          }
         }
         break;
-      case 5://pull ups yo...
-        align_edges();
+      case 8:
+        scissor("lower", 1850, false);
+        state = 9;
         break;
-      case 9://Reset state...
-        exit(0);
+      case 9:
+        tracks("pulse", 1);
+        check_environment("floor", 2);
+        if (left_dist < 10 && right_dist < 10)
+        {
+          tracks("pulse", 2);
+          scissor("lift", 1400, false);
+          delay(500);
+          tracks("stop", 1);
+          steps = 0;
+          state = 10;
+        }
         break;
+      case 10:
+        follow_line(0, 1);
+        steps++;
+        if (steps == 110) exit(0);
+        break;
+      case 11:
+        /*check_environment("floor", 2);
+        Serial.println("left");
+        Serial.println(left_dist);
+        Serial.println("right");
+        Serial.println(right_dist);
+        tracks("pulse", 1);
+        delay(500);
+        detectMag();
+        delay(1000);
+        */
       default:
-        //Ideal state???
         break;
     }
   }
