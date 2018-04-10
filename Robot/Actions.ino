@@ -173,7 +173,13 @@ float filter(int sensorNum, int window)
 boolean detectMag()
 {
   float valRead = analogRead(analogPin7) * .004828125;
+  
+  for (int i = 0; i < 50; i++)  
+    valRead = valRead + analogRead(analogPin7) * .004828125;
+  
+  valRead = valRead / 50;
   Serial.println(valRead);
+  
   if (valRead >= 2.58 || valRead <= 2.38) 
   {
     Serial.println("Magnetic Field Found");
@@ -195,7 +201,7 @@ boolean follow_line(int stop_condition, int steps)
   
   if (ret == false)
   {
-    reverse(3*steps, 1);
+    reverse(6, 1);
     repeat++; 
   }
   else

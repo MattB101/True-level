@@ -31,7 +31,7 @@ Servo Front_Pan;                               //Center 2nd servo pin Digital 21
 SoftwareSerial xbee(10, 11);
 
 /* State Machine Variables */
-int state = 4;
+int state = 0;
 boolean start = false;
 boolean reset = false;
 boolean mag = false;
@@ -114,8 +114,9 @@ void loop()
   {
     UI(xbee.read());
   }
+  //detectMag();
   if (!mag) mag = detectMag();
-  
+
   if (start)
   {
     if (mag)
@@ -125,14 +126,14 @@ void loop()
         /* Base */
         case 0:
           check_environment("all", 50);
-          Speed(3);
+          Speed(4);
           if (objects[2] == false && objects[0] == true && objects[1] == true) state = 1;
           if (objects[2] == false && objects[0] == false && objects[1] == false) state = 4;
           break;
         /* Paddleboard */
         case 1:
           scissor("lift", 350, false);
-          Speed(3);
+          Speed(4);
           state = 2;
           break;
         case 2:
@@ -148,8 +149,8 @@ void loop()
         /* Wall Lift */
         case 4:
           Speed(4);
-          if (repeat == 0) follow_line(35, 1);
-          else if (repeat == 1) follow_line(20, 2);
+          if (repeat == 0) follow_line(29, 1);
+          else if (repeat == 1) follow_line(15, 2);
           if (repeat == 2) state = 5;
           break;
         case 5:
@@ -172,18 +173,18 @@ void loop()
           break;
         /* U-Turn */
         case 7:
+          Speed(4);
           if (steps < 120)
           {
-            follow_line(15, 1);
+            follow_line(10, 1);
             steps++;
             if (steps == 40) scissor("lift", 1200, false);
           }
-          else
-            state = 8;
+          else state = 8;
           break;
         case 8:
           check_environment("floor", 2);
-          if (left_dist > 15 && right_dist > 15) state = 9;
+          if (left_dist > 8 && right_dist > 8) state = 9;
           else
           {
             forward(2, 1);
@@ -197,18 +198,17 @@ void loop()
         case 10:
           tracks("pulse", 1);
           check_environment("floor", 2);
-          if (left_dist < 10 && right_dist < 10)
+          if (left_dist < 8 && right_dist < 8)
           {
             tracks("pulse", 2);
-            scissor("lift", 1400, false);
-            delay(500);
-            tracks("stop", 1);
+            scissor("lift", 1400, false); //1800 maybe
+            forward(5, 1);
             steps = 0;
             state = 11;
           }
           break;
         case 11:
-          follow_line(15, 1);
+          follow_line(10, 1);
           steps++;
           if (steps == 110) exit(0);
           break;
@@ -226,6 +226,6 @@ void loop()
         default:
           break;
       }
-    }    
+    }
   }
 }
