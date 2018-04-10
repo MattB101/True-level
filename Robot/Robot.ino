@@ -31,8 +31,10 @@ Servo Front_Pan;                               //Center 2nd servo pin Digital 21
 SoftwareSerial xbee(10, 11);
 
 /* State Machine Variables */
-int state = 11;
-boolean start = true;
+int state = 4;
+boolean start = false;
+boolean reset = false;
+boolean mag = false;
 
 /* Sensors */
 //SharpIR Front_Long(GP2YA41SK0F, A3);
@@ -65,7 +67,7 @@ int test4 = 150;
 
 /* State Variables for Action functions */
 float cm, cm_right, cm_left, left_dist, right_dist, front_dist, left_dist_old, right_dist_old, front_dist_old = 0;
-int wall, edge, obstacle, line, steps, right_speed, left_speed = 0;
+int wall, edge, obstacle, line, steps, right_speed, left_speed, repeat = 0;
 int count = 1;
 boolean toggle = true;
 
@@ -103,119 +105,127 @@ void setup()
   pinMode(digitalPin45, OUTPUT);
 
   //Settling Time
-  delay(250);
+  delay(1000);
 }
 
 void loop()
 {
+  if (xbee.available())
+  {
+    UI(xbee.read());
+  }
+  if (!mag) mag = detectMag();
+  
   if (start)
   {
-    switch (state)
+    if (mag)
     {
-      /* Base */
-      case 0:
-        check_environment("all", 50);
-        Speed(3);
-        if (objects[2] == false && objects[0] == true && objects[1] == true) state = 1;
-        if (objects[2] == false && objects[0] == false && objects[1] == false) state = 4;
-        break;
-      /* Paddleboard */
-      case 1:
-        scissor("lift", 350, false);
-        Speed(3);
-        state = 2;
-        break;
-      case 2:
-        if (!in_between()) state = 3;
-        break;
-      case 3:
-        follow_line(0, 5);
-        drive_forward(6);
-        scissor("lower", 350, false);
-        state = 4;
-        steps = 0;
-        break;
-      /* Wall Lift */
-      case 4:
-        //follow_line(0, 2);
-        //steps++;
-        follow_line(0, 2);
-        check_environment("walls", 350);
-        if (!isinf(front_dist) && front_dist < 25) state = 5;
-        break;
-      case 5:
-        Speed(3);
-        drive_forward(5);
-        check_environment("walls", 50);
-        if (front_dist < 7) state = 6;
-        break;
-      case 6:
-        tracks("lift", 1);
-        check_environment("walls", 50);
-        while (objects[0] == false || objects[1] == false)
-        {
-          drive_forward(2);
+      switch (state)
+      {
+        /* Base */
+        case 0:
+          check_environment("all", 50);
+          Speed(3);
+          if (objects[2] == false && objects[0] == true && objects[1] == true) state = 1;
+          if (objects[2] == false && objects[0] == false && objects[1] == false) state = 4;
+          break;
+        /* Paddleboard */
+        case 1:
+          scissor("lift", 350, false);
+          Speed(3);
+          state = 2;
+          break;
+        case 2:
+          if (!in_between()) state = 3;
+          break;
+        case 3:
+          follow_line(15, 5);
+          drive_forward(6);
+          scissor("lower", 350, false);
+          state = 4;
+          steps = 0;
+          break;
+        /* Wall Lift */
+        case 4:
+          Speed(4);
+          if (repeat == 0) follow_line(35, 1);
+          else if (repeat == 1) follow_line(20, 2);
+          if (repeat == 2) state = 5;
+          break;
+        case 5:
+          Speed(3);
+          drive_forward(5);
           check_environment("walls", 50);
-        }
-        drive_forward(30);
-        tracks("stop", 1);
-        state = 7;
-        break;
-      /* U-Turn */
-      case 7:
-        if (steps < 112)
-        {
-          follow_line(0, 1);
-          steps++;
-          if (steps == 40) scissor("lift", 1200, false);
-          //if (steps == 112) tracks("drive");
-        }
-        else
-        {
+          if (front_dist < 7) state = 6;
+          break;
+        case 6:
+          tracks("lift", 1);
+          check_environment("walls", 50);
+          while (objects[0] == false || objects[1] == false)
+          {
+            drive_forward(2);
+            check_environment("walls", 50);
+          }
+          drive_forward(30);
+          tracks("stop", 1);
+          state = 7;
+          break;
+        /* U-Turn */
+        case 7:
+          if (steps < 120)
+          {
+            follow_line(15, 1);
+            steps++;
+            if (steps == 40) scissor("lift", 1200, false);
+          }
+          else
+            state = 8;
+          break;
+        case 8:
           check_environment("floor", 2);
-          if (left_dist > 15 && right_dist > 15) state = 8;
-          else 
+          if (left_dist > 15 && right_dist > 15) state = 9;
+          else
           {
             forward(2, 1);
             tracks("pulse", 1);
           }
-        }
-        break;
-      case 8:
-        scissor("lower", 1850, false);
-        state = 9;
-        break;
-      case 9:
-        tracks("pulse", 1);
-        check_environment("floor", 2);
-        if (left_dist < 10 && right_dist < 10)
-        {
-          tracks("pulse", 2);
-          scissor("lift", 1400, false);
-          delay(500);
-          tracks("stop", 1);
-          steps = 0;
+          break;
+        case 9:
+          scissor("lower", 1850, false);
           state = 10;
-        }
-        break;
-      case 10:
-        follow_line(0, 1);
-        steps++;
-        if (steps == 110) exit(0);
-        break;
-      case 11:
+          break;
+        case 10:
+          tracks("pulse", 1);
+          check_environment("floor", 2);
+          if (left_dist < 10 && right_dist < 10)
+          {
+            tracks("pulse", 2);
+            scissor("lift", 1400, false);
+            delay(500);
+            tracks("stop", 1);
+            steps = 0;
+            state = 11;
+          }
+          break;
+        case 11:
+          follow_line(15, 1);
+          steps++;
+          if (steps == 110) exit(0);
+          break;
+        case 12:
         /*check_environment("floor", 2);
-        Serial.println("left");
-        Serial.println(left_dist);
-        Serial.println("right");
-        Serial.println(right_dist);
-        tracks("pulse", 1);
-        delay(500);
-        detectMag();
-        delay(1000);
+          Serial.println("left");
+          Serial.println(left_dist);
+          Serial.println("right");
+          Serial.println(right_dist);
+          tracks("pulse", 1);
+          delay(500);
+          detectMag();
+          delay(1000);
         */
-      default:
-        break;
-    }
+        default:
+          break;
+      }
+    }    
   }
 }

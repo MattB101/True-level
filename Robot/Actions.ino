@@ -170,17 +170,20 @@ float filter(int sensorNum, int window)
   return dist;
 }
 
-void detectMag()
+boolean detectMag()
 {
   float valRead = analogRead(analogPin7) * .004828125;
   Serial.println(valRead);
-  if (valRead >= 2.58 || valRead <=2.40) 
+  if (valRead >= 2.58 || valRead <= 2.38) 
   {
     Serial.println("Magnetic Field Found");
-    start = true;
+    return true;
   }
   else 
+  {
+    return false;
     Serial.println("No Field Found");
+  }
 }
 
 boolean follow_line(int stop_condition, int steps)
@@ -189,13 +192,25 @@ boolean follow_line(int stop_condition, int steps)
   Front_Tilt.write(25);
   delay(abs(25 - last_pos) * 30);
   ret = find_line(stop_condition);
-  forward(steps, 1);
+  
+  if (ret == false)
+  {
+    reverse(3*steps, 1);
+    repeat++; 
+  }
+  else
+  {
+    if (repeat == 1) repeat = 2;
+    else if (repeat == 2) repeat = 0; 
+    forward(steps, 1);
+  }
   last_pos = 25;
   return ret;
 }
 
 boolean find_line(int stop_condition)
 {
+  count = 0;
   int thresh = 2;
   toggle = true;
   
@@ -204,7 +219,7 @@ boolean find_line(int stop_condition)
     toggle = !(toggle);
     if (toggle == false)
     {
-      for (int i = 0; i < count; i++)
+      for (int i = 0; i < count + 1; i++)
       {
         right(1, 2);
         sense_line();
@@ -213,17 +228,17 @@ boolean find_line(int stop_condition)
       if (count > thresh && line == 0)
       {
         if (count >= stop_condition)
-          {
-            left(count/2, 2);
-            return false;
-          }
+        {
+          left(count/2, 2);
+          return false;          
+        }
         right(5, 2);
         count = count + 5;
       }
     }
     else
     {
-      for (int i = 0; i < count; i++)
+      for (int i = 0; i < count + 1; i++)
       {
         left(1, 2);
         sense_line();
@@ -232,10 +247,10 @@ boolean find_line(int stop_condition)
       if (count > thresh && line == 0)
       {
         if (count >= stop_condition)
-          {
-            right((count/2) + 1, 2);
-            return false;
-          }
+        {
+          right((count/2) + 1, 2);
+          return false; 
+        }
         left(5, 2);
         count = count + 5;
       }
@@ -244,7 +259,6 @@ boolean find_line(int stop_condition)
   }
 
   sense_line();
-  count = 0;
   return true;
 }
 
