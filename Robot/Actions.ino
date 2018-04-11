@@ -13,7 +13,7 @@ void check_environment(String argument, int samples)
     delay(abs(100 - last_pos) * 30);
     
     front_dist = filter_long(samples);
-    Serial.println(front_dist);
+    //Serial.println(front_dist);
     left_dist = filter(1, 50);
     right_dist = filter(2, 50);
     
@@ -170,25 +170,20 @@ float filter(int sensorNum, int window)
   return dist;
 }
 
-boolean detectMag()
+void detectMag()
 {
   float valRead = analogRead(analogPin7) * .004828125;
   
   for (int i = 0; i < 50; i++)  
-    valRead = valRead + analogRead(analogPin7) * .004828125;
+    valRead = valRead + (analogRead(analogPin7) * .004828125);
   
   valRead = valRead / 50;
   Serial.println(valRead);
   
-  if (valRead >= 2.58 || valRead <= 2.38) 
+  if (valRead > 2.54)// valRead <= 2.38) 
   {
-    Serial.println("Magnetic Field Found");
-    return true;
-  }
-  else 
-  {
-    return false;
-    Serial.println("No Field Found");
+    //Serial.println("Magnetic Field Found");
+    mag = true;
   }
 }
 

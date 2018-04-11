@@ -22,7 +22,7 @@ void UI(byte cmd_typed)
       break;
     case 120: //x
       start = false;
-      mag = false;
+      //mag = false;
       steps = 0;
       repeat = 0;
       count = 1;

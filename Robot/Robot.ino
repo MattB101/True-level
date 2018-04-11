@@ -32,9 +32,9 @@ SoftwareSerial xbee(10, 11);
 
 /* State Machine Variables */
 int state = 0;
-boolean start = false;
+boolean start = true;
 boolean reset = false;
-boolean mag = false;
+boolean mag = true;
 
 /* Sensors */
 //SharpIR Front_Long(GP2YA41SK0F, A3);
@@ -114,13 +114,9 @@ void loop()
   {
     UI(xbee.read());
   }
-  //detectMag();
-  if (!mag) mag = detectMag();
 
   if (start)
-  {
-    if (mag)
-    {
+  {    
       switch (state)
       {
         /* Base */
@@ -140,17 +136,18 @@ void loop()
           if (!in_between()) state = 3;
           break;
         case 3:
-          follow_line(15, 5);
-          drive_forward(6);
+          Speed(3);
+          follow_line(15, 6);
+          //drive_forward(6);
           scissor("lower", 350, false);
           state = 4;
           steps = 0;
           break;
         /* Wall Lift */
         case 4:
-          Speed(4);
-          if (repeat == 0) follow_line(29, 1);
-          else if (repeat == 1) follow_line(15, 2);
+          Speed(5);
+          if (repeat == 0) follow_line(10, 1);
+          else if (repeat == 1) follow_line(10, 2);
           if (repeat == 2) state = 5;
           break;
         case 5:
@@ -173,12 +170,12 @@ void loop()
           break;
         /* U-Turn */
         case 7:
-          Speed(4);
-          if (steps < 120)
+          Speed(3);
+          if (steps < 60)
           {
-            follow_line(10, 1);
+            follow_line(25, 2);
             steps++;
-            if (steps == 40) scissor("lift", 1200, false);
+            if (steps == 40) scissor("lift", 1450, false);
           }
           else state = 8;
           break;
@@ -200,9 +197,9 @@ void loop()
           check_environment("floor", 2);
           if (left_dist < 8 && right_dist < 8)
           {
-            tracks("pulse", 2);
-            scissor("lift", 1400, false); //1800 maybe
-            forward(5, 1);
+            tracks("pulse", 6);
+            scissor("lift", 1890, false); //1800 maybe
+            forward(10, 1);
             steps = 0;
             state = 11;
           }
@@ -210,9 +207,10 @@ void loop()
         case 11:
           follow_line(10, 1);
           steps++;
-          if (steps == 110) exit(0);
+          if (steps == 100) state = 12;
           break;
         case 12:
+          scissor("lift", 1000, false);
         /*check_environment("floor", 2);
           Serial.println("left");
           Serial.println(left_dist);
@@ -223,9 +221,10 @@ void loop()
           detectMag();
           delay(1000);
         */
+          break;
         default:
           break;
+        
       }
-    }
   }
 }
