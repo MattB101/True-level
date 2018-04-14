@@ -58,11 +58,11 @@ void Speed(int ratioNum)
       break;
     case 3:
       left_speed = 150;
-      right_speed = 147;
+      right_speed = 146;
       break;
     case 4:
       left_speed = 100;
-      right_speed = 98;
+      right_speed = 96;
       break;
     default:
       break;

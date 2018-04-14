@@ -9,88 +9,88 @@ void check_environment(String argument, int samples)
     Left_Tilt.write(55);
     Front_Tilt.write(110);
     Front_Pan.write(95);
-  
+
     delay(abs(100 - last_pos) * 30);
-    
+
     front_dist = filter_long(samples);
     //Serial.println(front_dist);
     left_dist = filter(1, 50);
     right_dist = filter(2, 50);
-    
+
     if (left_dist < 10) objects[0] = true;
     if (right_dist < 10) objects[1] = true;
     if (front_dist < 10) objects[2] = true;
-    
+
     last_pos = 110;
   }
 
   if (argument == "edges" || argument == "all" && objects[0] == false && objects[1] == false)
   {
-     Right_Tilt.write(105);
-     Left_Tilt.write(5);
-     Front_Tilt.write(50);
-     delay(250);
-       
-     for (int i = 0; i < 30; i++)
-     {
-       if (objects[3] == false) Left_Tilt.write(5 + i);
-       if (objects[4] == false) Right_Tilt.write(105 - i);
-       if (objects[5] == false) Front_Tilt.write(50 + i);
-       
-       delay(15);
-   
-       left_dist = filter(1, 50);
-       right_dist= filter(2, 50);
-       front_dist = filter_long(50);
-       
-       if (left_dist> 15 && objects[3] == false)
-       {
-         //Serial.println("L Edge@");
-         //Serial.println(5 + i - 1);
-         objects[3] = true;
-         Left_Tilt.write(5 + i - 1);
-       }
-       if (right_dist > 15 && objects[4] == false)
-       {
-         //Serial.println("R Edge@");
-         //Serial.println(105 - i + 1);
-         objects[4] = true;
-         Right_Tilt.write(105 - i + 1);
-       } 
-       if (front_dist > 20 && objects[5] == false)
-       {
-         objects[4] = true;
-         Front_Tilt.write(50 + i - 1);
-       }
-     }
-   }
+    Right_Tilt.write(105);
+    Left_Tilt.write(5);
+    Front_Tilt.write(50);
+    delay(250);
 
-   if (argument == "floor")
-   {
-      Right_Tilt.write(110);
-      Left_Tilt.write(5);
-      delay(250);
-      left_dist = filter(1, samples);
-      right_dist= filter(2, samples);
-   }
+    for (int i = 0; i < 30; i++)
+    {
+      if (objects[3] == false) Left_Tilt.write(5 + i);
+      if (objects[4] == false) Right_Tilt.write(105 - i);
+      if (objects[5] == false) Front_Tilt.write(50 + i);
+
+      delay(15);
+
+      left_dist = filter(1, 50);
+      right_dist = filter(2, 50);
+      front_dist = filter_long(50);
+
+      if (left_dist > 15 && objects[3] == false)
+      {
+        //Serial.println("L Edge@");
+        //Serial.println(5 + i - 1);
+        objects[3] = true;
+        Left_Tilt.write(5 + i - 1);
+      }
+      if (right_dist > 15 && objects[4] == false)
+      {
+        //Serial.println("R Edge@");
+        //Serial.println(105 - i + 1);
+        objects[4] = true;
+        Right_Tilt.write(105 - i + 1);
+      }
+      if (front_dist > 20 && objects[5] == false)
+      {
+        objects[4] = true;
+        Front_Tilt.write(50 + i - 1);
+      }
+    }
+  }
+
+  if (argument == "floor")
+  {
+    Right_Tilt.write(110);
+    Left_Tilt.write(5);
+    delay(250);
+    left_dist = filter(1, samples);
+    right_dist = filter(2, samples);
+  }
 }
 
 void align_edges()
 {
   float thresh = 2.5;
-  
-  check_environment("edges",50);
+
+  check_environment("edges", 50);
   left_dist_old = left_dist;
   right_dist_old = right_dist;
 
   drive_reverse(5);
-  check_environment("edges",50);
-  
-  if (left_dist - left_dist_old > .5) right(2, 1);
-  else if (right_dist - right_dist_old > .5) left(2,1);
+  check_environment("edges", 50);
 
-  check_environment("edges",50);
-    
+  if (left_dist - left_dist_old > .5) right(2, 1);
+  else if (right_dist - right_dist_old > .5) left(2, 1);
+
+  check_environment("edges", 50);
+
   if ((right_dist > left_dist) && abs(right_dist - left_dist) >= thresh)
   {
     left(3, 1);
@@ -111,9 +111,9 @@ void align_edges()
 
 boolean in_between()
 {
-  float thresh = 2.5; 
-  
-  check_environment("walls",50);
+  float thresh = 2.5;
+
+  check_environment("walls", 50);
 
   if ((right_dist > left_dist) && abs(right_dist - left_dist) >= thresh)
   {
@@ -127,11 +127,11 @@ boolean in_between()
     reverse(3, 1);
     left(4, 1);
   }
-  else if (right_dist > 15 && left_dist > 15)  
+  else if (right_dist > 15 && left_dist > 15)
     return false;
   else
     drive_forward(20);
-    
+
   return true;
 }
 
@@ -145,8 +145,8 @@ float IR_Distance(int sensorNum)
 }
 
 /*
-float filter_long(int window)
-{
+  float filter_long(int window)
+  {
   float dist = 0;
 
   for (int i = 0; i < window; i++)
@@ -155,7 +155,7 @@ float filter_long(int window)
   }
   dist = dist / window;
   return dist;
-}
+  }
 */
 
 float filter(int sensorNum, int window)
@@ -170,39 +170,152 @@ float filter(int sensorNum, int window)
   return dist;
 }
 
-void detectMag()
+//Should be enough time to get some good readings from the mag sensor
+void calibrate_mag()
 {
-  float valRead = analogRead(analogPin7) * .004828125;
-  
-  for (int i = 0; i < 50; i++)  
-    valRead = valRead + (analogRead(analogPin7) * .004828125);
-  
-  valRead = valRead / 50;
-  Serial.println(valRead);
-  
-  if (valRead > 2.54)// valRead <= 2.38) 
+  delay(2000);
+  unsigned int int_reading = analogRead(analogPin7);
+  for (int i = 0; i < 10; i++)
   {
-    //Serial.println("Magnetic Field Found");
-    mag = true;
+    int_reading = int_reading + analogRead(analogPin7);
+  }
+  int_reading = int_reading / 10;
+  if (int_reading > 0)
+  {
+    INT_MAG = int_reading;
+    MAG_CHECK = true;
+  }
+  else
+  {
+    INT_MAG = 0;
+    MAG_CHECK = false;
   }
 }
 
+byte read_mag()
+{
+  while (true)
+  {
+    LATE_MAG_READING = analogRead(analogPin7);
+    for (int i = 0; i < 10; i++)
+    {
+      LATE_MAG_READING = LATE_MAG_READING + analogRead(analogPin7);
+    }
+    LATE_MAG_READING = LATE_MAG_READING / 10;
+
+    xbee.print("INT_MAG: " );
+    xbee.println(INT_MAG);
+    xbee.print("LATE_MAG_READING: ");
+    xbee.println(LATE_MAG_READING);
+    delay(1000);
+
+    if (INT_MAG + 30 < LATE_MAG_READING || INT_MAG - 30 > LATE_MAG_READING)
+    {
+      xbee.print("Setting mag to true: INT_MAG: ");
+      xbee.print(INT_MAG);
+      xbee.print(" LATE_MAG_READING: ");
+      xbee.println(LATE_MAG_READING);
+      mag = true;
+      return 0;
+    }
+    else
+    {
+      xbee.print("Setting mag to false: INT_MAG: ");
+      xbee.print(INT_MAG);
+      xbee.print(" LATE_MAG_READING: ");
+      xbee.println(LATE_MAG_READING);
+      mag = false;
+      return 1;
+    }
+  }
+}
+
+
+
+//Might not need this anymore.... I think I may have fixxed it...
+
+/*byte detectMag()
+  {
+  unsigned int valRead = analogRead(analogPin7);//* .004828125);
+
+  for (int i = 0; i < 10; i++)
+  {
+    valRead = valRead + analogRead(analogPin7);//* .004828125);
+  }
+  valRead = valRead / 10;
+
+  //Serial.println(valRead);
+  //xbee.println(valRead);
+
+  unsigned int dvalRead = 0;
+  //xbee.print("This is the dvalRead: ");
+  //xbee.println(dvalRead);
+  //xbee.print("This is expected: ");
+  //xbee.println(valRead);
+
+  //if (valRead  > 670)
+   // mag = true;
+   // else
+   // mag = false;
+
+  tick = 0;
+  while (true)
+  {
+    dvalRead = analogRead(analogPin7);
+    for (int i = 0; i < 10; i++)
+    {
+      dvalRead = dvalRead + analogRead(analogPin7);
+    }
+    dvalRead = dvalRead / 10;
+
+    if (tick == 0)
+    {
+      xbee.print("This is the dvalRead:" );
+      xbee.println(dvalRead);
+      xbee.print("This is expected: ");
+      xbee.println(expected);
+    }
+    if (xbee.available())
+    {
+      mag = false;
+      return xbee.read();
+    }
+    else if (expected + 20 < dvalRead || expected - 20 > dvalRead)
+    {
+      xbee.print("Setting mag to true because : ");
+      xbee.println(dvalRead);
+      mag = true;
+      return 0;
+    }
+    else
+    {
+      mag = false;
+    }
+    tick++;
+  }
+  }*/
+
+
+//---------------------------------------
+
+
+
 boolean follow_line(int stop_condition, int steps)
-{  
+{
   boolean ret = false;
   Front_Tilt.write(25);
   delay(abs(25 - last_pos) * 30);
   ret = find_line(stop_condition);
-  
+
   if (ret == false)
   {
     reverse(6, 1);
-    repeat++; 
+    repeat++;
   }
   else
   {
     if (repeat == 1) repeat = 2;
-    else if (repeat == 2) repeat = 0; 
+    else if (repeat == 2) repeat = 0;
     forward(steps, 1);
   }
   last_pos = 25;
@@ -214,7 +327,7 @@ boolean find_line(int stop_condition)
   count = 0;
   int thresh = 2;
   toggle = true;
-  
+
   while (line == 0)
   {
     toggle = !(toggle);
@@ -230,8 +343,8 @@ boolean find_line(int stop_condition)
       {
         if (count >= stop_condition)
         {
-          left(count/2, 2);
-          return false;          
+          left(count / 2, 2);
+          return false;
         }
         right(5, 2);
         count = count + 5;
@@ -249,13 +362,13 @@ boolean find_line(int stop_condition)
       {
         if (count >= stop_condition)
         {
-          right((count/2) + 1, 2);
-          return false; 
+          right((count / 2) + 1, 2);
+          return false;
         }
         left(5, 2);
         count = count + 5;
       }
-    } 
+    }
     count++;
   }
 
@@ -288,20 +401,20 @@ void sense_line()
 {
   cm = filter(analogPin0, 50);
 
-  if (cm > 7.5) line = 1; 
-  else line = 0;   
+  if (cm > 7.5) line = 1;
+  else line = 0;
 }
 
 void sense_wall(int mode)
 {
   cm = filter(analogPin0, 50);
-  
+
   if (cm < 5) wall = 1;
   else wall = 0;
 
   if (mode == 0 || wall == 0) Right_Tilt.write(100);
   else if (mode == 1 || wall == 1) Right_Tilt.write(50);
-  
+
 }
 
 void find_wall()
