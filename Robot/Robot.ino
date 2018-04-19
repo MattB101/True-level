@@ -236,7 +236,7 @@ void loop()
         forward(15,1);
         right(1,1);
         tracks("lift", 4);
-        forward(15,1);
+        forward(25,1);
         //tracks("stop", 1);
         scissor("lower", 1000, false);
         tracks("stop", 1);
