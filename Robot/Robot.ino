@@ -31,7 +31,7 @@ Servo Front_Pan;                               //Center 2nd servo pin Digital 21
 SoftwareSerial xbee(10, 11);
 
 /* State Machine Variables */
-int state = 0;
+int state = 1;
 boolean start = false;
 boolean reset = false;
 boolean mag = false;
@@ -70,13 +70,15 @@ int test3 = 50;
 int test4 = 150;
 
 /* State Variables for Action functions */
-float cm, cm_right, cm_left, left_dist, right_dist, front_dist, left_dist_old, right_dist_old, front_dist_old = 0;
+float cm, cm_right, cm_left, left_dist, right_dist, front_dist, front_dist_short, left_dist_old, right_dist_old, front_dist_old = 0;
 int wall, edge, obstacle, line, steps, right_speed, left_speed, repeat = 0;
 int count = 1;
 boolean toggle = true;
 
 void setup()
 {
+  repeat = 0;
+  
   /* Telemetry */
   Serial.begin(9600);
   xbee.begin(9600);
@@ -121,23 +123,6 @@ void loop()
     MAG_STATE = read_mag();
   }
 
-
-
-
-  //dont need this shit....
-  /*//checkMagState = detectMag();
-    if (mag == false && start)
-    checkMagState = detectMag();
-    else if (!mag && !start && tick == 0)
-    xbee.println("Nothing was detected");
-    if (checkMagState != 0)
-    UI(checkMagState);
-  */
-  //-----------------------------
-
-
-
-
   if (start && mag)
   {
     switch (state)
@@ -151,7 +136,7 @@ void loop()
         break;
       /* Paddleboard */
       case 1:
-        xbee.println("Roach: I am in Paddleboards. I must for straight or die!");
+        //xbee.println("Roach: I am in Paddleboards. I must go straight or die!");
         scissor("lift", 350, false);
         Speed(4);
         state = 2;
@@ -162,14 +147,13 @@ void loop()
       case 3:
         Speed(3);
         follow_line(15, 6);
-        //drive_forward(6);
         scissor("lower", 350, false);
         state = 4;
         steps = 0;
         break;
       /* Wall Lift */
       case 4:
-        xbee.println("Roach: I am in Wall lift. I must use my strength to lift this black wall!");
+        //xbee.println("Roach: I am in Wall lift. I must use my strength to lift this black wall!");
         Speed(5);
         if (repeat == 0) follow_line(10, 1);
         else if (repeat == 1) follow_line(10, 2);
@@ -179,7 +163,7 @@ void loop()
         Speed(3);
         drive_forward(5);
         check_environment("walls", 50);
-        if (front_dist < 7) state = 6;
+        if (front_dist < 7 || front_dist_short < 5) state = 6;
         break;
       case 6:
         tracks("lift", 1);
@@ -189,26 +173,27 @@ void loop()
           drive_forward(2);
           check_environment("walls", 50);
         }
-        drive_forward(30);
+        drive_forward(32);
+        right(2, 1);
         tracks("stop", 1);
         state = 7;
         break;
+      //xbee.println("Roach: I am in U turn. This is easy I must sniff the line!");
       /* U-Turn */
       case 7:
-      xbee.println("Roach: I am in U turn. This is easy I must sniff the line!");
         Speed(3);
-        if (steps < 60)
+        if (steps < 62)
         {
           follow_line(25, 2);
           steps++;
-          if (steps == 40) scissor("lift", 1450, false);
+          if (steps == 35) scissor("lift", 1850, false);
         }
         else state = 8;
         break;
       case 8:
-      xbee.println("Roach: I am in Rail runner. O boy...I can sense the food!");
+        //xbee.println("Roach: I am in Rail runner. O boy...I can sense the food!");
         check_environment("floor", 2);
-        if (left_dist > 8 && right_dist > 8) state = 9;
+        if (left_dist > 6 && right_dist > 6) state = 9; //was 8
         else
         {
           forward(2, 1);
@@ -222,35 +207,45 @@ void loop()
       case 10:
         tracks("pulse", 1);
         check_environment("floor", 2);
-        if (left_dist < 6 && right_dist < 6)
+        if (left_dist < 6 && right_dist < 6) 
         {
           tracks("pulse", 4);
-          scissor("lift", 1890, false); //1800 maybe
+          //scissor("lift", 1890, false); //1800 maybe
           forward(10, 1);
           steps = 0;
           state = 11;
+          repeat = 0;
         }
         break;
       case 11:
-      xbee.println("Roach: I am in Rail lift. Why dont I have wings?!");
-        follow_line(10, 1);
-        steps++;
-        if (steps == 100) state = 12;
+      Speed(3);
+        if (repeat == 0) follow_line(10, 1);
+        else if (repeat == 1) follow_line(10, 2);
+        if (repeat == 2) state = 12;
+        //follow_line(10, 1);
+        //steps++;
+        //if (steps == ) state = 12;
         break;
       case 12:
-        scissor("lift", 1000, false);
-        /*check_environment("floor", 2);
-          Serial.println("left");
-          Serial.println(left_dist);
-          Serial.println("right");
-          Serial.println(right_dist);
-          tracks("pulse", 1);
-          delay(500);
-          detectMag();
-          delay(1000);
-        */
+        Speed(3);
+        scissor("lift", 4500, false);
+        forward(10,1);
+        right(1,1);
+        forward(15,1);
+        right(1,1);
+        forward(15,1);
+        right(1,1);
+        tracks("lift", 4);
+        forward(15,1);
+        //tracks("stop", 1);
+        scissor("lower", 1000, false);
+        tracks("stop", 1);
+        scissor("lower", 4500, false);
+        state = 13;
         break;
       case 13: //calibration state
+        xbee.println("I did it!! Yummy food I will live your 10+ years now!");
+        exit(0);
         break;
       default:
         state = 0;

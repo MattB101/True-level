@@ -13,7 +13,7 @@ void check_environment(String argument, int samples)
     delay(abs(100 - last_pos) * 30);
 
     front_dist = filter_long(samples);
-    //Serial.println(front_dist);
+    front_dist_short = filter(0, 50);
     left_dist = filter(1, 50);
     right_dist = filter(2, 50);
 
@@ -144,20 +144,6 @@ float IR_Distance(int sensorNum)
   return dist;
 }
 
-/*
-  float filter_long(int window)
-  {
-  float dist = 0;
-
-  for (int i = 0; i < window; i++)
-  {
-    dist = dist + Front_Long.getDistance();
-  }
-  dist = dist / window;
-  return dist;
-  }
-*/
-
 float filter(int sensorNum, int window)
 {
   float dist = 0;
@@ -174,7 +160,7 @@ float filter(int sensorNum, int window)
 void calibrate_mag()
 {
   delay(2000);
-  unsigned int int_reading = analogRead(analogPin7);
+  unsigned int int_reading = 0;
   for (int i = 0; i < 10; i++)
   {
     int_reading = int_reading + analogRead(analogPin7);
@@ -196,7 +182,7 @@ byte read_mag()
 {
   while (true)
   {
-    LATE_MAG_READING = analogRead(analogPin7);
+    LATE_MAG_READING = 0;
     for (int i = 0; i < 10; i++)
     {
       LATE_MAG_READING = LATE_MAG_READING + analogRead(analogPin7);
@@ -229,76 +215,6 @@ byte read_mag()
     }
   }
 }
-
-
-
-//Might not need this anymore.... I think I may have fixxed it...
-
-/*byte detectMag()
-  {
-  unsigned int valRead = analogRead(analogPin7);//* .004828125);
-
-  for (int i = 0; i < 10; i++)
-  {
-    valRead = valRead + analogRead(analogPin7);//* .004828125);
-  }
-  valRead = valRead / 10;
-
-  //Serial.println(valRead);
-  //xbee.println(valRead);
-
-  unsigned int dvalRead = 0;
-  //xbee.print("This is the dvalRead: ");
-  //xbee.println(dvalRead);
-  //xbee.print("This is expected: ");
-  //xbee.println(valRead);
-
-  //if (valRead  > 670)
-   // mag = true;
-   // else
-   // mag = false;
-
-  tick = 0;
-  while (true)
-  {
-    dvalRead = analogRead(analogPin7);
-    for (int i = 0; i < 10; i++)
-    {
-      dvalRead = dvalRead + analogRead(analogPin7);
-    }
-    dvalRead = dvalRead / 10;
-
-    if (tick == 0)
-    {
-      xbee.print("This is the dvalRead:" );
-      xbee.println(dvalRead);
-      xbee.print("This is expected: ");
-      xbee.println(expected);
-    }
-    if (xbee.available())
-    {
-      mag = false;
-      return xbee.read();
-    }
-    else if (expected + 20 < dvalRead || expected - 20 > dvalRead)
-    {
-      xbee.print("Setting mag to true because : ");
-      xbee.println(dvalRead);
-      mag = true;
-      return 0;
-    }
-    else
-    {
-      mag = false;
-    }
-    tick++;
-  }
-  }*/
-
-
-//---------------------------------------
-
-
 
 boolean follow_line(int stop_condition, int steps)
 {

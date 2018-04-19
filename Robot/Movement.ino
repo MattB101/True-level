@@ -22,6 +22,12 @@ void tracks(String  action, int repeat)
     delay(500 * repeat);
     tracks("stop", 1);
   }
+  else if (action == "pulse_r")
+  {
+    tracks("lift", 1);
+    delay(500 * repeat);
+    tracks("stop", 1);
+  }
 }
 
 void scissor(String action, int height, boolean hold)
